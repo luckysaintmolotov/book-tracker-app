@@ -28,6 +28,14 @@ def add_book_to_database(book):
             year TEXT
         )
     ''')
+    cursor.execute('SELECT * FROM books WHERE title=? AND author=?', (book.title, book.author))
+    existing_book = cursor.fetchone()
+    # Check if the book already exists in the database
+    if existing_book is not None:
+        print(f"Book '{book.title}' by {book.author} already exists in the database.")
+        conn.close()
+        return
+    # If the book does not exist, insert it into the database
     cursor.execute('''
         INSERT INTO books (title, author, isbn, year)
         VALUES (?, ?, ?, ?)
