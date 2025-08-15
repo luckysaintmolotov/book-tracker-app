@@ -54,3 +54,5 @@ class Menu:
             exit()
         else:
             print("Invalid choice. Please try again.")
+# This class manages the menu options for the Book Tracker App, allowing users to add, view, search, update, delete books, and view removed books.
+# It provides methods to display the menu, get user input, and execute the selected option.

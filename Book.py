@@ -24,3 +24,6 @@ class Book:
             "isbn": self.isbn,
             "year": self.year
         }
+
+# This class represents a book with attributes like title, author, ISBN, year, genre, total pages, start date, end date, rating, completion status, and current status.
+# It includes a method to convert the book data into a dictionary format for easier handling and storage.
