@@ -67,10 +67,10 @@ def view_books_in_database():
             print(f"ID: {book_id}, Title: {book_data['title']}, Author: {book_data['author']}, ISBN: {book_data['isbn']}, Year: {book_data['year']}") 
 
 def remove_book_from_database(book_id):
-  """Function to remove a book from the database by ID, and makes a history of the removed book in a separate table"""
-  conn = sqlite3.connect('databases/books.db')
-  cursor = conn.cursor()
-  cursor.execute('''
+    """Function to remove a book from the database by ID, and makes a history of the removed book in a separate table"""
+    conn = sqlite3.connect('databases/books.db')
+    cursor = conn.cursor()
+    cursor.execute('''
     CREATE TABLE IF NOT EXISTS removed_books (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
@@ -79,9 +79,9 @@ def remove_book_from_database(book_id):
             year TEXT
         )
     ''')
-  cursor.execute('SELECT * FROM books WHERE id=?', (book_id,))
-  book = cursor.fetchone()
-  if book:
+    cursor.execute('SELECT * FROM books WHERE id=?', (book_id,))
+    book = cursor.fetchone()
+    if book:
         cursor.execute('''
             INSERT INTO removed_books (title, author, isbn, year)
             VALUES (?, ?, ?, ?)
@@ -96,9 +96,9 @@ def remove_book_from_database(book_id):
             print("Book removed successfully, but books table is not empty, so ID count remains unchanged.")
 
         print(f"Book with ID {book_id} removed from the database and added to removed_books history.")
-  else:
+    else:
         print(f"No book found with ID {book_id}.")
-  conn.close() 
+    conn.close() 
 
 def is_books_table_empty():
     """Check if the books table is empty."""
@@ -132,6 +132,17 @@ def view_removed_books():
         print("Removed books:")
         for book in removed_books:
             print(f"ID: {book[0]}, Title: {book[1]}, Author: {book[2]}, ISBN: {book[3]}, Year: {book[4]}")
+    
+    # Restore functionality to restore a removed book back to the main books table
+    if removed_books:
+        print("You can restore a removed book back to the main books table.")
+        restore_choice = input("Do you want to restore a removed book? (yes/no): ")
+        if restore_choice.lower() == 'yes':
+            restore_removed_book(book_id=int(input("Enter the ID of the book you want to restore: ")))
+        else:
+            print("No book restored.")
+    else:
+        print("No removed books available to restore.")    
 
 def restore_removed_book(book_id):
     """Function to restore a removed book back to the main books table"""
