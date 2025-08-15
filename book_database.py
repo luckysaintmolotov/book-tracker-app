@@ -2,6 +2,31 @@ import sqlite3
 from Book import Book
 """Database management module for the Book Tracker App"""
 
+def create_database_if_not_exists():
+    """Create the database and tables if they do not exist"""
+    conn = sqlite3.connect('databases/books.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS books (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            author TEXT NOT NULL,
+            isbn TEXT,
+            year TEXT
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS removed_books (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            author TEXT NOT NULL,
+            isbn TEXT,
+            year TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
 def add_book_by_user_input():
     """Function to add basic book data from user input"""
     title = input("Enter book title: ")#!required
