@@ -8,6 +8,7 @@ class Menu:
             3: "Search Book",
             4: "Update Book",
             5: "Delete Book",
+            6: "View Removed Books",
             0: "Exit"
         }
 
@@ -45,6 +46,9 @@ class Menu:
         elif choice == 5:
             book_database.view_books_in_database()
             book_database.remove_book_from_database(book_id=int(input("Enter the book ID to delete: ")))
+        elif choice == 6:
+            book_database.view_removed_books()
+    
         elif choice == 0:
             print("Exiting the Book Tracker App. Goodbye!")
             exit()
