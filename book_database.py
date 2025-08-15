@@ -2,8 +2,6 @@ import sqlite3
 from Book import Book
 """Database management module for the Book Tracker App"""
 
-
-
 def add_book_by_user_input():
     """Function to add basic book data from user input"""
     title = input("Enter book title: ")#!required
