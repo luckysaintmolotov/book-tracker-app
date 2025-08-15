@@ -1,5 +1,6 @@
 import sqlite3
 from Book import Book
+from Book_logs import update_log
 """Database management module for the Book Tracker App"""
 
 def create_database_if_not_exists():
@@ -35,9 +36,11 @@ def add_book_by_user_input():
     year = input("Enter book publication year, if unknown leave blank: ")     
     if not title or not author:
         print("Title and Author fields are required. Please try again.")
+        update_log("Book data entry failed due to missing required fields.")
         return None  
     print(f"Book data entered successfully. Title: {title}, Author: {author}, ISBN: {isbn}, Year: {year}")
     """Convert book data to class and return it"""
+    update_log("Book data entered successfully.")
     return Book(title=title, author=author, isbn=isbn if isbn else None, year=year if year else None)
 
 def add_book_to_database(book):
@@ -68,6 +71,7 @@ def add_book_to_database(book):
     conn.commit()
     conn.close()
     print(f"Book '{book.title}' added to the database successfully.")
+    update_log(f"Book '{book.title}' added to the database successfully.")
     
 def view_books_in_database():
     """Function to view all books in the database"""
@@ -86,6 +90,7 @@ def view_books_in_database():
         }
     if not book_list:
         print("No books found in the database.")
+        
     else:
         print("Books in the database:")
         for book_id, book_data in book_list.items():
@@ -116,13 +121,15 @@ def remove_book_from_database(book_id):
         if is_books_table_empty()==True:
             # If the books table is empty, reset the ID count
             reset_books_table_id()
-            print("Book removed successfully and books table is now empty, so ID count reset to 0.")
+            update_log(f"Book with ID {book_id} removed and books table reset.")
         else:
-            print("Book removed successfully, but books table is not empty, so ID count remains unchanged.")
+            update_log("Book removed successfully, but books table is not empty, so ID count remains unchanged.")
 
         print(f"Book with ID {book_id} removed from the database and added to removed_books history.")
+        
     else:
         print(f"No book found with ID {book_id}.")
+    update_log(f"No book found with ID {book_id}.")
     conn.close() 
 
 def is_books_table_empty():
@@ -153,6 +160,7 @@ def view_removed_books():
     conn.close()
     if not removed_books:
         print("No removed books found in the database.")
+        update_log("No removed books found in the database.")
     else:
         print("Removed books:")
         for book in removed_books:
@@ -164,8 +172,10 @@ def view_removed_books():
         restore_choice = input("Do you want to restore a removed book? (yes/no): ")
         if restore_choice.lower() == 'yes':
             restore_removed_book(book_id=int(input("Enter the ID of the book you want to restore: ")))
+            update_log("Removed book restored successfully.")
         else:
             print("No book restored.")
+        update_log("Removed books viewed successfully.")
     else:
         print("No removed books available to restore.")    
 
@@ -188,3 +198,7 @@ def restore_removed_book(book_id):
         print(f"No removed book found with ID {book_id}.")
     conn.close()
 
+# This module provides functions to manage the book database, including creating the database, adding books, viewing books, removing books, and restoring removed books.
+# It uses SQLite for database management and includes logging functionality to track operations.
+# The database is structured with two tables: one for current books and another for removed books,
+# allowing for easy management and retrieval of book data.
