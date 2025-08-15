@@ -1,6 +1,5 @@
 import sqlite3
-import Book
-
+from Book import Book
 """Database management module for the Book Tracker App"""
 
 
@@ -16,7 +15,7 @@ def add_book_by_user_input():
         return None  
     print(f"Book data entered successfully. Title: {title}, Author: {author}, ISBN: {isbn}, Year: {year}")
     """Convert book data to class and return it"""
-    return Book.Book(title=title, author=author, isbn=isbn if isbn else None, year=year if year else None)
+    return Book(title=title, author=author, isbn=isbn if isbn else None, year=year if year else None)
 
 def add_book_to_database(book):
     """Function to add book data to the database"""
