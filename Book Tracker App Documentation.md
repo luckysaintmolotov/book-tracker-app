@@ -28,35 +28,42 @@
 
 ## Program Flowchart
 
-```
-Start
-  |
-  v
-User chooses action:
-  |-------------------|-------------------|-------------------|-------------------|-------------------|-------------------|
-  v                   v                   v                   v                   v                   v
-Add Book         View Books         Remove Book         View Removed Books   Restore Removed Book   Exit
-  |                   |                   |                   |                   |                   |
-  v                   v                   v                   v                   v                   v
-Get user input   Fetch all books    Get book ID         Fetch all removed    Get removed book ID   End
-(title, author,  from books table  from user           books from           from user
-isbn, year)      and display       |                   removed_books table  |
-  |                   |             |                   and display         |
-  v                   v             |                   |                   |
-Create Book      Show books         v                   Show removed        Restore book:
-object           list              Remove book:         books list          - Move to books table
-  |                   |             - Move to           |                   - Remove from removed_books
-  v                   |             removed_books       |                   |
-Add to books     |                 - Delete from        |                   |
-table            |                 books table          |                   |
-  |              |                 - If books table     |                   |
-  v              |                 empty, reset ID      |                   |
-Show success     |                 count                |                   |
-message          |                 |                    |                   |
-  |              |                 v                    |                   |
-  v              |             Show success             |                   |
-End              |             message                  |                   |
-                 |                 |                    |                   |
-                 v                 v                    v                   v
-             End              End                  End                 End
+
+```mermaid
+graph TD
+    A[Start] --> B[Initialize Database]
+    B --> C[Display Menu]
+    C --> D{User Selects Option}
+    D -->|Add Book| E[Get User Input]
+    D -->|View Books| F[Fetch All Books From Database]
+    D -->|Remove Book| G[View Current Books And Get Book ID]
+    D -->|View Removed Books| H[Fetch All Removed Books From Database]
+    D -->|Restore Removed Book| I[Get Removed Book ID]
+    D -->|Exit| J[End]
+
+    E --> K[Create Book Object]
+    K --> L[Add To Database]
+    L --> M[Show Success Message]
+    M --> C
+
+    F --> N[Show Books List]
+    N --> C
+
+    G --> O[Move Book To Removed_Books Table]
+    O --> P[Delete From Books Table]
+    P --> Q{Is Books Table Empty?}
+    Q -->|Yes| R[Reset ID Counter]
+    Q -->|No| S[Show Success Message]
+    S --> C
+    R --> S
+
+    H --> T[Show Removed Books List]
+    T --> U{Restore Book?}
+    U -->|Yes| I
+    U -->|No| C
+
+    I --> V[Move Book Back To Books Table]
+    V --> W[Delete From Removed_Books Table]
+    W --> X[Show Success Message]
+    X --> C
 ```
