@@ -198,6 +198,32 @@ def restore_removed_book(book_id):
         print(f"No removed book found with ID {book_id}.")
     conn.close()
 
+def get_book_id(author,title):
+    """Function to get book ID from database by author and title"""
+    conn = sqlite3.connect('databases/books.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT id FROM books WHERE author=? AND title=?', (author, title))
+    book_id = cursor.fetchone()
+    conn.close()
+    if book_id:
+        return book_id[0]
+    else:
+        print(f"No book found with author '{author}' and title '{title}'.")
+        return None
+
+def get_book_by_id(book_id):
+    """Function to get book details by ID"""
+    conn = sqlite3.connect('databases/books.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM books WHERE id=?', (book_id,))
+    book = cursor.fetchone()
+    conn.close()
+    if book:
+        return Book(title=book[1], author=book[2], isbn=book[3], year=book[4])
+    else:
+        print(f"No book found with ID {book_id}.")
+        return None    
+    
 # This module provides functions to manage the book database, including creating the database, adding books, viewing books, removing books, and restoring removed books.
 # It uses SQLite for database management and includes logging functionality to track operations.
 # The database is structured with two tables: one for current books and another for removed books,
