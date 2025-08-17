@@ -25,3 +25,26 @@ def update_reading_progress(book_id):
             print(f"Start Date: {book.start_date}, End Date: {book.end_date}, Current Page: {book.current_page}, Total Pages: {book.total_pages}, Completion: {book.completion:.2f}%")
     else:
         print(f"No book found with ID {book_id}.")  
+  
+def create_table_if_not_exists():
+    """Function to create the reading tracking table if it does not exist"""
+    conn = sqlite3.connect('databases/books.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS reading_progress (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            author TEXT NOT NULL,
+            title TEXT NOT NULL,
+            start_date TEXT,
+            end_date TEXT,
+            days INTEGER,
+            current_page INTEGER,
+            total_pages INTEGER,
+            pages_per_day INTEGER,
+            completion REAL,
+            updated TEXT,
+            FOREIGN KEY (id) REFERENCES books (id)
+        )
+    ''')
+    conn.commit()
+    conn.close() 
