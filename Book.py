@@ -1,22 +1,24 @@
 class Book:
     """Class to represent a book"""
-    def __init__(self, title, author, isbn=None, year=None,
+    def __init__(self,id,title, author, isbn=None, year=None,
                 genre=None, current_page=None, total_pages=None,
-                start_date=None,end_date=None, rating=None, completion=None,status=None, updated=None):
-        
+                start_date=None,end_date=None, rating=None, completion=None,status=None, time_stamp=None):
+        self.id = id
         self.title = title
         self.author = author
         self.isbn = isbn
         self.year = year
         self.genre = genre
+        
         self.total_pages = total_pages
         self.current_page = current_page
         self.start_date = start_date
         self.end_date = end_date
-        self.rating = rating
         self.completion = completion
+        
+        self.rating = rating
         self.status = status
-        self.updated= updated
+        self.time_stamp= time_stamp
         
     def __repr__(self):
         return f"Book(title={self.title}, author={self.author}, isbn={self.isbn}, year={self.year})"
