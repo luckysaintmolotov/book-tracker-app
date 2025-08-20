@@ -2,29 +2,107 @@ import sqlite3
 from Book import Book
 from Book_logs import update_log
 """Database management module for the Book Tracker App"""
-
+db_name = 'databases/books.db'
 def create_database_if_not_exists():
     """Create the database and tables if they do not exist"""
-    conn = sqlite3.connect('databases/books.db')
+    conn = sqlite3.connect(db_name)
     cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS books (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            author TEXT NOT NULL,
-            isbn TEXT,
-            year TEXT
-        )
-    ''')
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS removed_books (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            author TEXT NOT NULL,
-            isbn TEXT,
-            year TEXT
-        )
-    ''')
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS "books" (
+        "id" TEXT,
+        "author" TEXT,
+        "title" TEXT,
+        "ISBN" TEXT UNIQUE,
+        PRIMARY KEY("id")
+    )""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS "genres" (
+        "genre_id" TEXT,
+        "genre_name" TEXT UNIQUE,
+        PRIMARY KEY("genre_id"))""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS "book_genres" (
+        "book_id" TEXT NOT NULL,
+        "genre_id" TEXT NOT NULL,
+        PRIMARY KEY("book_id", "genre_id"),
+        FOREIGN KEY ("book_id") REFERENCES "books"("id")
+        ON UPDATE CASCADE ON DELETE CASCADE,
+        FOREIGN KEY ("genre_id") REFERENCES "genres"("genre_id")
+        ON UPDATE CASCADE ON DELETE CASCADE
+    )""")
+
+    cursor.execute("""CREATE TABLE IF NOT EXISTS "reading_progress" (
+        "id" TEXT,
+        "book_id" TEXT NOT NULL,
+        "total_pages" INTEGER,
+        "current_pages" INTEGER,
+        "start_date" DATE,
+        "end_date" DATE,
+        "percentage" REAL,
+        "status" TEXT,
+        "last_updated" TIMESTAMP,
+        PRIMARY KEY("id"),
+        FOREIGN KEY ("book_id") REFERENCES "books"("id")
+        ON UPDATE CASCADE ON DELETE CASCADE
+    )""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS "book_status" (
+        "status_id" TEXT,
+        "progress_id" TEXT NOT NULL,
+        "status" TEXT,
+        "timestamp" TIMESTAMP,
+        PRIMARY KEY("status_id"),
+        FOREIGN KEY ("progress_id") REFERENCES "reading_progress"("id")
+        ON UPDATE CASCADE ON DELETE CASCADE
+    )""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS "reviews_and_info" (
+        "review_id" TEXT,
+        "book_id" TEXT,
+        "description" TEXT,
+        "review" TEXT,
+        "notes" TEXT,
+        "timestamp" TIMESTAMP,
+        PRIMARY KEY("review_id"),
+        FOREIGN KEY ("book_id") REFERENCES "books"("id")
+        ON UPDATE CASCADE ON DELETE CASCADE
+    )""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS "review_tags" (
+        "review_id" TEXT NOT NULL,
+        "tag" TEXT NOT NULL,
+        PRIMARY KEY("review_id", "tag"),
+        FOREIGN KEY ("review_id") REFERENCES "reviews_and_info"("review_id")
+        ON UPDATE CASCADE ON DELETE CASCADE
+    )""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS "removed_books" (
+        "id" TEXT,
+        "book_id" TEXT NOT NULL,
+        "timestamp" TIMESTAMP,
+        PRIMARY KEY("id"),
+        FOREIGN KEY ("book_id") REFERENCES "books"("id")
+        ON UPDATE CASCADE ON DELETE CASCADE
+    )""")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS "restored_books" (
+        "id" TEXT,
+        "removed_id" TEXT NOT NULL,
+        "book_id" TEXT NOT NULL,
+        "timestamp" TIMESTAMP,
+        PRIMARY KEY("id"),
+        FOREIGN KEY ("removed_id") REFERENCES "removed_books"("id")
+        ON UPDATE CASCADE ON DELETE CASCADE,
+        FOREIGN KEY ("book_id") REFERENCES "books"("id")
+        ON UPDATE CASCADE ON DELETE CASCADE
+    )""")
     conn.commit()
     conn.close()
 
@@ -41,7 +119,7 @@ def add_book_by_user_input():
     print(f"Book data entered successfully. Title: {title}, Author: {author}, ISBN: {isbn}, Year: {year}")
     """Convert book data to class and return it"""
     update_log("Book data entered successfully.")
-    return Book(title=title, author=author, isbn=isbn if isbn else None, year=year if year else None)
+    return Book(id=None,title=title, author=author, isbn=isbn if isbn else None, year=year if year else None)
 
 def add_book_to_database(book):
     """Function to add book data to the database"""
@@ -96,7 +174,7 @@ def view_books_in_database():
         for book_id, book_data in book_list.items():
             print(f"ID: {book_id}, Title: {book_data['title']}, Author: {book_data['author']}, ISBN: {book_data['isbn']}, Year: {book_data['year']}") 
 
-def remove_book_from_database(book_id):
+def remove_book_from_database(id):
     """Function to remove a book from the database by ID, and makes a history of the removed book in a separate table"""
     conn = sqlite3.connect('databases/books.db')
     cursor = conn.cursor()
@@ -109,27 +187,27 @@ def remove_book_from_database(book_id):
             year TEXT
         )
     ''')
-    cursor.execute('SELECT * FROM books WHERE id=?', (book_id,))
+    cursor.execute('SELECT * FROM books WHERE id=?', (id,))
     book = cursor.fetchone()
     if book:
         cursor.execute('''
             INSERT INTO removed_books (title, author, isbn, year)
             VALUES (?, ?, ?, ?)
         ''', (book[1], book[2], book[3], book[4]))
-        cursor.execute('DELETE FROM books WHERE id=?', (book_id,))
+        cursor.execute('DELETE FROM books WHERE id=?', (id,))
         conn.commit()
         if is_books_table_empty()==True:
             # If the books table is empty, reset the ID count
             reset_books_table_id()
-            update_log(f"Book with ID {book_id} removed and books table reset.")
+            update_log(f"Book with ID {id} removed and books table reset.")
         else:
             update_log("Book removed successfully, but books table is not empty, so ID count remains unchanged.")
 
-        print(f"Book with ID {book_id} removed from the database and added to removed_books history.")
+        print(f"Book with ID {id} removed from the database and added to removed_books history.")
         
     else:
-        print(f"No book found with ID {book_id}.")
-    update_log(f"No book found with ID {book_id}.")
+        print(f"No book found with ID {id}.")
+    update_log(f"No book found with ID {id}.")
     conn.close() 
 
 def is_books_table_empty():
@@ -171,7 +249,7 @@ def view_removed_books():
         print("You can restore a removed book back to the main books table.")
         restore_choice = input("Do you want to restore a removed book? (yes/no): ")
         if restore_choice.lower() == 'yes':
-            restore_removed_book(book_id=int(input("Enter the ID of the book you want to restore: ")))
+            restore_removed_book(id=int(input("Enter the ID of the book you want to restore: ")))
             update_log("Removed book restored successfully.")
         else:
             print("No book restored.")
@@ -179,23 +257,23 @@ def view_removed_books():
     else:
         print("No removed books available to restore.")    
 
-def restore_removed_book(book_id):
+def restore_removed_book(id):
     """Function to restore a removed book back to the main books table"""
     conn = sqlite3.connect('databases/books.db')
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM removed_books WHERE id=?', (book_id,))
+    cursor.execute('SELECT * FROM removed_books WHERE id=?', (id,))
     book = cursor.fetchone()
     if book:
         cursor.execute('''
             INSERT INTO books (title, author, isbn, year)
             VALUES (?, ?, ?, ?)
         ''', (book[1], book[2], book[3], book[4]))
-        cursor.execute('DELETE FROM removed_books WHERE id=?', (book_id,))
+        cursor.execute('DELETE FROM removed_books WHERE id=?', (id,))
         conn.commit()
-        print(f"Book with ID {book_id} restored to the main books table.")
+        print(f"Book with ID {id} restored to the main books table.")
     
     else:
-        print(f"No removed book found with ID {book_id}.")
+        print(f"No removed book found with ID {id}.")
     conn.close()
 
 def get_book_id(author,title):
@@ -211,17 +289,17 @@ def get_book_id(author,title):
         print(f"No book found with author '{author}' and title '{title}'.")
         return None
 
-def get_book_by_id(book_id):
+def get_book_by_id(id):
     """Function to get book details by ID"""
     conn = sqlite3.connect('databases/books.db')
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM books WHERE id=?', (book_id,))
+    cursor.execute('SELECT * FROM books WHERE id=?', (id,))
     book = cursor.fetchone()
     conn.close()
     if book:
-        return Book(title=book[1], author=book[2], isbn=book[3], year=book[4])
+        return Book(id=book[0],title=book[1], author=book[2], isbn=book[3], year=book[4])
     else:
-        print(f"No book found with ID {book_id}.")
+        print(f"No book found with ID {id}.")
         return None    
     
 # This module provides functions to manage the book database, including creating the database, adding books, viewing books, removing books, and restoring removed books.
