@@ -3,8 +3,10 @@ from Book import Book
 from Book_logs import update_log
 """Database management module for the Book Tracker App"""
 db_name = 'databases/books.db'
+
 def create_database_if_not_exists():
     """Create the database and tables if they do not exist"""
+    
     conn = sqlite3.connect(db_name)
     cursor = conn.cursor()
     cursor.execute("""
@@ -15,12 +17,14 @@ def create_database_if_not_exists():
         "ISBN" TEXT UNIQUE,
         PRIMARY KEY("id")
     )""")
+    # Create the books table with unique ISBN and primary key on id
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS "genres" (
         "genre_id" TEXT,
         "genre_name" TEXT UNIQUE,
         PRIMARY KEY("genre_id"))""")
+    # Create the genres table with unique genre names and primary key on genre_id
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS "book_genres" (
@@ -32,6 +36,7 @@ def create_database_if_not_exists():
         FOREIGN KEY ("genre_id") REFERENCES "genres"("genre_id")
         ON UPDATE CASCADE ON DELETE CASCADE
     )""")
+    # Create the book_genres table to link books and genres with foreign keys
 
     cursor.execute("""CREATE TABLE IF NOT EXISTS "reading_progress" (
         "id" TEXT,
@@ -47,6 +52,7 @@ def create_database_if_not_exists():
         FOREIGN KEY ("book_id") REFERENCES "books"("id")
         ON UPDATE CASCADE ON DELETE CASCADE
     )""")
+    # Create the reading_progress table to track reading progress with foreign key to books
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS "book_status" (
@@ -58,6 +64,7 @@ def create_database_if_not_exists():
         FOREIGN KEY ("progress_id") REFERENCES "reading_progress"("id")
         ON UPDATE CASCADE ON DELETE CASCADE
     )""")
+    # Create the book_status table to track status updates with foreign key to reading_progress
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS "reviews_and_info" (
@@ -71,6 +78,7 @@ def create_database_if_not_exists():
         FOREIGN KEY ("book_id") REFERENCES "books"("id")
         ON UPDATE CASCADE ON DELETE CASCADE
     )""")
+    # Create the reviews_and_info table to store reviews and additional information with foreign key to books
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS "review_tags" (
@@ -80,6 +88,7 @@ def create_database_if_not_exists():
         FOREIGN KEY ("review_id") REFERENCES "reviews_and_info"("review_id")
         ON UPDATE CASCADE ON DELETE CASCADE
     )""")
+    # Create the review_tags table to link reviews and tags with foreign key to reviews_and_info
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS "removed_books" (
@@ -90,6 +99,7 @@ def create_database_if_not_exists():
         FOREIGN KEY ("book_id") REFERENCES "books"("id")
         ON UPDATE CASCADE ON DELETE CASCADE
     )""")
+    # Create the removed_books table to keep track of removed books with foreign key to books
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS "restored_books" (
@@ -105,6 +115,7 @@ def create_database_if_not_exists():
     )""")
     conn.commit()
     conn.close()
+    # Create the restored_books table to keep track of restored books with foreign keys to removed_books and books
 
 def add_book_by_user_input():
     """Function to add basic book data from user input"""
