@@ -1,5 +1,5 @@
 import sqlite3
-import uuid,re,io
+import uuid,re,random
 from datetime import datetime
 from Book import Book
 from Book_logs import update_log
@@ -217,17 +217,9 @@ class BooksTable(Book):
 
             else:
                 print(f"Books in the database: {len(book_list)}")
-            book_count = 0
-            for book_id, book_data in book_list.items():
-                book_count+=1
-                print(f"""
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Book #{book_count}
 
-Title: {book_data['title']}, Author: {book_data['author']}, 
-ISBN: {book_data['isbn']}, Year: {book_data['year']}
-ID: {book_id},
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -""") 
+            for book_id, book_data in book_list.items():
+                print(f"""Title: {book_data['title']}, Author: {book_data['author']},   | | |   ID {book_id}""")
 
         @staticmethod
         def by_author(author):
@@ -251,18 +243,8 @@ ID: {book_id},
 
             else:
                 print(f"Books by {author} in the database: {len(book_list)}")
-            book_count = 0
             for book_id, book_data in book_list.items():
-                book_count+=1
-                
-                print(f"""
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Book #{book_count}
-
-Title: {book_data['title']}, 
-ISBN: {book_data['isbn']}, Year: {book_data['year']}
-ID: {book_id},
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -""") 
+                print(f"""Title: {book_data['title']}, Author: {book_data['author']},   | | |   ID {book_id}""")
             
         @staticmethod
         def by_author_and_title(author,title):
@@ -286,18 +268,20 @@ ID: {book_id},
 
             else:
                 print(f"{title} by {author} in the database: {len(book_list)}")
-            book_count = 0
             for book_id, book_data in book_list.items():
-                book_count+=1
-                
-                print(f"""
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Book #{book_count}
+                print(f"""Title: {book_data['title']}, Author: {book_data['author']},   | | |   ID {book_id}""")
 
-ISBN: {book_data['isbn']}, Year: {book_data['year']}
-ID: {book_id},
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -""") 
+        @staticmethod
+        def by_ISBN(isbn):
+            pass
         
+        @staticmethod
+        def by_genre(genre):
+            pass
+        
+        @staticmethod
+        def by_random():
+            pass
         #further functions will be implemented
 
     class Remove:
@@ -498,10 +482,10 @@ def get_book_by_id(id):
 if __name__ == "__main__":
     create_database_if_not_exists()
     # Uncomment the following lines to test the functions
-    book = BooksTable.create_book_item()
-    BooksTable.add_to(book)
+    #book = BooksTable.create_book_item()
+    #BooksTable.add_to(book)
     BooksTable.View.all_books()
     BooksTable.View.by_author('Welsh')
     BooksTable.View.by_author_and_title('Irvine Welsh','Porno')
-    id=('6dbcfb2b-8098-532b-9c31-0d7d12589886')
-    BooksTable.Remove.remove_by_id(id)
+    #id=('6dbcfb2b-8098-532b-9c31-0d7d12589886')
+    #BooksTable.Remove.remove_by_id(id)
