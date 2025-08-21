@@ -67,6 +67,7 @@ erDiagram
 		TEXT author
 		TEXT title
 		TEXT ISBN
+        TEXT year
 	}
 
 	genres {
