@@ -1,4 +1,5 @@
 import sqlite3
+import uuid,re,random
 from Book import Book
 from Book_logs import update_log
 """Database management module for the Book Tracker App"""
@@ -117,28 +118,47 @@ def create_database_if_not_exists():
     conn.close()
     # Create the restored_books table to keep track of restored books with foreign keys to removed_books and books
 
-def add_book_by_user_input():
-    """Function to add basic book data from user input"""
-    title = input("Enter book title: ")#!required
-    author = input("Enter book author: ")#!required
+def create_book_item():
+    """Function to create a book item with basic data"""
+    def generate_book_id(author, title, year, isbn):
+        """Function that generates a UUID"""
+        if len(year) < 4  or year is None:
+            year = 1900
+            isbn = "000000000000000000000"
+        # Input sanitization
+        author = author.strip()
+        title = title.strip()
+        year = year 
+        isbn = isbn.strip()
+        
+        author = re.sub(r'[^a-zA-Z0-9 ]', '', author)
+        title = re.sub(r'[^a-zA-Z0-9 ]', '', title)
+        isbn = re.sub(r'[^0-9X]', '', isbn)  # ISBN can contain digits and 'X' for ISBN-10
+
+        # Generate a unique ID for the book
+        return str(uuid.uuid5(uuid.NAMESPACE_X500, f"{author}{title}{year}{isbn}"))
+        
+    title = input("Enter book title: ").lower().strip()#!required
+    author = input("Enter book author: ").lower().strip()#!required
     isbn = input("Enter book ISBN, if unknown leave blank: ")
-    year = input("Enter book publication year, if unknown leave blank: ")     
+    year = input("Enter book publication year, if unknown leave blank: ")
+    id = generate_book_id(author,title,year,isbn)
     if not title or not author:
         print("Title and Author fields are required. Please try again.")
-        update_log("Book data entry failed due to missing required fields.")
+        update_log("Book creation failed due to missing required fields.")
         return None  
-    print(f"Book data entered successfully. Title: {title}, Author: {author}, ISBN: {isbn}, Year: {year}")
+    print(f"Book created successfully. ID:{id} Title: {title}, Author: {author}, ISBN: {isbn}, Year: {year}")
     """Convert book data to class and return it"""
-    update_log("Book data entered successfully.")
-    return Book(id=None,title=title, author=author, isbn=isbn if isbn else None, year=year if year else None)
+    update_log("Book created successfully.")
+    return Book(id=id,title=title, author=author, isbn=isbn if isbn else None, year=year if year else None)
 
-def add_book_to_database(book):
-    """Function to add book data to the database"""
-    conn = sqlite3.connect('databases/books.db')
+def add_book_item_to_database(book):
+    """Function to add book item to the database"""
+    conn = sqlite3.connect(db_name)
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS books (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id TEXT PRIMARY KEY,
             title TEXT NOT NULL,
             author TEXT NOT NULL,
             isbn TEXT,
@@ -154,14 +174,16 @@ def add_book_to_database(book):
         return
     # If the book does not exist, insert it into the database
     cursor.execute('''
-        INSERT INTO books (title, author, isbn, year)
-        VALUES (?, ?, ?, ?)
-    ''', (book.title, book.author, book.isbn, book.year))
+        INSERT INTO books (id, title, author, isbn, year)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (book.id, book.title, book.author, book.isbn, book.year))
     conn.commit()
     conn.close()
-    print(f"Book '{book.title}' added to the database successfully.")
+    print(f"Book '{book.title}' with ID: {book.id}added to the database successfully.")
     update_log(f"Book '{book.title}' added to the database successfully.")
-    
+
+
+
 def view_books_in_database():
     """Function to view all books in the database"""
     conn = sqlite3.connect('databases/books.db')
@@ -317,3 +339,10 @@ def get_book_by_id(id):
 # It uses SQLite for database management and includes logging functionality to track operations.
 # The database is structured with two tables: one for current books and another for removed books,
 # allowing for easy management and retrieval of book data.
+
+"""Testing the book_database module"""
+if __name__ == "__main__":
+    create_database_if_not_exists()
+    # Uncomment the following lines to test the functions
+    book = create_book_item()
+    print(book)
