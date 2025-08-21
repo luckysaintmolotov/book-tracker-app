@@ -1,5 +1,6 @@
 import sqlite3
 import uuid,re,random
+from datetime import datetime
 from Book import Book
 from Book_logs import update_log
 """Database management module for the Book Tracker App"""
@@ -16,6 +17,7 @@ def create_database_if_not_exists():
         "title" TEXT,
         "ISBN" TEXT UNIQUE,
         "year" TEXT,
+        "creation_date" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY("id")
     )""")
     # Create the books table with unique ISBN and primary key on id
@@ -117,11 +119,9 @@ def create_database_if_not_exists():
     conn.commit()
     conn.close()
     # Create the restored_books table to keep track of restored books with foreign keys to removed_books and books
-
-
-
 class BooksTable(Book):
     """Class to handle all functions dedicated to the books table"""
+
     @staticmethod
     def create_book_item():
         """Function to create a book item with basic data"""
@@ -152,25 +152,17 @@ class BooksTable(Book):
             print("Title and Author fields are required. Please try again.")
             update_log("Book creation failed due to missing required fields.")
             return None  
-        print(f"Book created successfully. ID:{id} Title: {title}, Author: {author}, ISBN: {isbn}, Year: {year}")
+    
+        print(f"Book created successfully. ID:{id} Title: {title}, Author: {author}, ISBN: {isbn}, Year: {year} on {datetime.now().strftime('%d-%m-%Y')}")
         """Convert book data to class and return it"""
         update_log("Book created successfully.")
-        return Book(id=id,title=title, author=author, isbn=isbn if isbn else None, year=year if year else None)
+        return Book(id=id,title=title, author=author, isbn=isbn if isbn else None, year=year if year else None, )
     
     @staticmethod
     def add_to(book):
         """Function to add book item to the database"""
         conn = sqlite3.connect(db_name)
         cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS books (
-                id TEXT PRIMARY KEY,
-                title TEXT NOT NULL,
-                author TEXT NOT NULL,
-                isbn TEXT,
-                year TEXT
-            )
-        ''')
         cursor.execute('SELECT * FROM books WHERE title=? AND author=?', (book.title, book.author))
         existing_book = cursor.fetchone()
         # Check if the book already exists in the database
@@ -180,8 +172,8 @@ class BooksTable(Book):
             return
         # If the book does not exist, insert it into the database
         cursor.execute('''
-            INSERT INTO books (id, title, author, isbn, year)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO books (id, title, author, isbn, year, creation_date)
+            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
         ''', (book.id, book.title, book.author, book.isbn, book.year))
         conn.commit()
         conn.close()
@@ -214,9 +206,10 @@ class BooksTable(Book):
                 print(f"Books in the database: {len(book_list)}")
             book_count = 0
             for book_id, book_data in book_list.items():
+                book_count+=1
                 print(f"""
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Book #{book_count+1}
+Book #{book_count}
 
 Title: {book_data['title']}, Author: {book_data['author']}, 
 ISBN: {book_data['isbn']}, Year: {book_data['year']}
@@ -229,22 +222,81 @@ ID: {book_id},
             cursor = conn.cursor()
             cursor.execute("""
                         SELECT * FROM books 
-                        WHERE author = ?""",(author,))
+                        WHERE author LIKE ?""",('%' + author + '%',))
+            books = cursor.fetchall()
             conn.close()
-            print(cursor.fetchall())
+            book_list = {}
+            for book in books:
+                book_list[book[0]] = {
+                        "author": book[1],
+                        "title": book[2],
+                        "isbn": book[3],
+                        "year": book[4]
+                    }
+            if not book_list:
+                    print(f"No books by {author} found in the database.")
+
+            else:
+                print(f"Books by {author} in the database: {len(book_list)}")
+            book_count = 0
+            for book_id, book_data in book_list.items():
+                book_count+=1
+                
+                print(f"""
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Book #{book_count}
+
+Title: {book_data['title']}, 
+ISBN: {book_data['isbn']}, Year: {book_data['year']}
+ID: {book_id},
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -""") 
+            
         @staticmethod
         def by_author_and_title(author,title):
             conn = sqlite3.connect(db_name)
             cursor = conn.cursor()
             cursor.execute("""
-                        SELECT * FROM books
-                        WHERE ? AND ? FROM books""", (author,title))
+                        SELECT * FROM books 
+                        WHERE author LIKE ? AND title LIKE ?""",('%' + author + '%', '%' + title + '%'))
+            books = cursor.fetchall()
             conn.close()
-            print(cursor.fetchall())
+            book_list = {}
+            for book in books:
+                book_list[book[0]] = {
+                        "author": book[1],
+                        "title": book[2],
+                        "isbn": book[3],
+                        "year": book[4]
+                    }
+            if not book_list:
+                    print(f"No book {title} by {author} found in the database.")
+
+            else:
+                print(f"{title} by {author} in the database: {len(book_list)}")
+            book_count = 0
+            for book_id, book_data in book_list.items():
+                book_count+=1
+                
+                print(f"""
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Book #{book_count}
+
+ISBN: {book_data['isbn']}, Year: {book_data['year']}
+ID: {book_id},
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -""") 
         
         #further functions will be implemented
 
-
+    class Remove:
+        """Function to handle all database removal"""
+        #to be implemented
+        pass
+    
+    class Restore:
+        """Function to handle database restoration"""
+        #to be implemented 
+        pass
+    
 def view_books_in_database():
     """Function to view all books in the database"""
     conn = sqlite3.connect('databases/books.db')
@@ -408,5 +460,6 @@ if __name__ == "__main__":
     book = BooksTable.create_book_item()
     BooksTable.add_to(book)
     BooksTable.View.all_books()
-
+    BooksTable.View.by_author('Welsh')
+    BooksTable.View.by_author_and_title('Irvine Welsh','Porno')
     
