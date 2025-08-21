@@ -15,6 +15,7 @@ def create_database_if_not_exists():
         "author" TEXT,
         "title" TEXT,
         "ISBN" TEXT UNIQUE,
+        "year" TEXT,
         PRIMARY KEY("id")
     )""")
     # Create the books table with unique ISBN and primary key on id
@@ -187,9 +188,61 @@ class BooksTable(Book):
         print(f"Book '{book.title}' with ID: {book.id}added to the database successfully.")
         update_log(f"Book '{book.title}' added to the database successfully.")
 
-    
 
+    class View:
+        @staticmethod
+        def all_books():  
+            conn = sqlite3.connect(db_name)
+            cursor = conn.cursor()
+            cursor.execute("""
+                        SELECT * FROM books             
+                        """)
+            books = cursor.fetchall()
+            conn.close()
+            book_list = {}
+            for book in books:
+                book_list[book[0]] = {
+                        "author": book[1],
+                        "title": book[2],
+                        "isbn": book[3],
+                        "year": book[4]
+                    }
+            if not book_list:
+                    print("No books found in the database.")
 
+            else:
+                print(f"Books in the database: {len(book_list)}")
+            book_count = 0
+            for book_id, book_data in book_list.items():
+                print(f"""
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Book #{book_count+1}
+
+Title: {book_data['title']}, Author: {book_data['author']}, 
+ISBN: {book_data['isbn']}, Year: {book_data['year']}
+ID: {book_id},
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -""") 
+
+        @staticmethod
+        def by_author(author):
+            conn = sqlite3.connect(db_name)
+            cursor = conn.cursor()
+            cursor.execute("""
+                        SELECT * FROM books 
+                        WHERE author = ?""",(author,))
+            conn.close()
+            print(cursor.fetchall())
+        @staticmethod
+        def by_author_and_title(author,title):
+            conn = sqlite3.connect(db_name)
+            cursor = conn.cursor()
+            cursor.execute("""
+                        SELECT * FROM books
+                        WHERE ? AND ? FROM books""", (author,title))
+            conn.close()
+            print(cursor.fetchall())
+        
+        #further functions will be implemented
 
 
 def view_books_in_database():
@@ -353,4 +406,7 @@ if __name__ == "__main__":
     create_database_if_not_exists()
     # Uncomment the following lines to test the functions
     book = BooksTable.create_book_item()
-    print(book)
+    BooksTable.add_to(book)
+    BooksTable.View.all_books()
+
+    
