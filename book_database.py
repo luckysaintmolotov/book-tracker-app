@@ -1,15 +1,16 @@
 import sqlite3
-import uuid,re,random
+import uuid,re
 from datetime import datetime
 from Book import Book
 from Book_logs import update_log
 """Database management module for the Book Tracker App"""
-db_name = 'databases/books.db'
+DB_NAME = 'databases/books.db'
 def create_database_if_not_exists():
     """Create the database and tables if they do not exist"""
     
-    conn = sqlite3.connect(db_name)
+    conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
+    conn.execute("PRAGMA foreign_keys = ON;")
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS "books" (
         "id" TEXT,
@@ -34,6 +35,19 @@ def create_database_if_not_exists():
         PRIMARY KEY("id")
     )""")
     # Create the removed_books table to keep track of removed books with foreign key to books
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS "restored_books" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "book_id" TEXT NOT NULL,
+    "author" TEXT,
+    "title" TEXT,
+    "timestamp" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY ("book_id") REFERENCES "books"("id")
+    ON UPDATE CASCADE ON DELETE CASCADE
+    )""")
+    # Create the restored books table to keep track of restored books with foreign key to books
+
 
 
 
@@ -109,24 +123,12 @@ def create_database_if_not_exists():
     # Create the review_tags table to link reviews and tags with foreign key to reviews_and_info
 
 
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS "restored_books" (
-        "id" TEXT,
-        "removed_id" TEXT NOT NULL,
-        "book_id" TEXT NOT NULL,
-        "timestamp" TIMESTAMP,
-        PRIMARY KEY("id"),
-        FOREIGN KEY ("removed_id") REFERENCES "removed_books"("id")
-        ON UPDATE CASCADE ON DELETE CASCADE,
-        FOREIGN KEY ("book_id") REFERENCES "books"("id")
-        ON UPDATE CASCADE ON DELETE CASCADE
-    )""")
+
     conn.commit()
     conn.close()
-    # Create the restored_books table to keep track of restored books with foreign keys to removed_books and books
 def create_database_backup():
-    conn=sqlite3.connect(db_name)
-    b_conn = sqlite3.connect(f"{db_name}.bk-{datetime.now()}")
+    conn=sqlite3.connect(DB_NAME)
+    b_conn = sqlite3.connect(f"{DB_NAME}.bk-{datetime.now()}")
     
     conn.backup(b_conn)
     b_conn.close()
@@ -174,7 +176,7 @@ class BooksTable(Book):
     @staticmethod
     def add_to(book):
         """Function to add book item to the database"""
-        conn = sqlite3.connect(db_name)
+        conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM books WHERE title=? AND author=?', (book.title, book.author))
         existing_book = cursor.fetchone()
@@ -197,7 +199,7 @@ class BooksTable(Book):
     class View:
         @staticmethod
         def all_books():  
-            conn = sqlite3.connect(db_name)
+            conn = sqlite3.connect(DB_NAME)
             cursor = conn.cursor()
             cursor.execute("""
                         SELECT * FROM books             
@@ -223,7 +225,7 @@ class BooksTable(Book):
 
         @staticmethod
         def by_author(author):
-            conn = sqlite3.connect(db_name)
+            conn = sqlite3.connect(DB_NAME)
             cursor = conn.cursor()
             cursor.execute("""
                         SELECT * FROM books 
@@ -248,7 +250,7 @@ class BooksTable(Book):
             
         @staticmethod
         def by_author_and_title(author,title):
-            conn = sqlite3.connect(db_name)
+            conn = sqlite3.connect(DB_NAME)
             cursor = conn.cursor()
             cursor.execute("""
                         SELECT * FROM books 
@@ -289,7 +291,7 @@ class BooksTable(Book):
 
         @staticmethod
         def remove_by_id(book_id):        
-            conn = sqlite3.connect(db_name)
+            conn = sqlite3.connect(DB_NAME)
             cursor = conn.cursor()
             cursor.execute("""
                 SELECT * FROM books 
@@ -304,10 +306,10 @@ class BooksTable(Book):
                     create_database_backup()
                     
                     #add book to removed book table
-                    conn=sqlite3.connect(db_name)
+                    conn=sqlite3.connect(DB_NAME)
                     cursor = conn.cursor()
                     cursor.execute('''
-                    INSERT INTO removed_books (id, title, author, isbn, year, creation_date)
+                    INSERT INTO removed_books (id, author, title, isbn, year, creation_date)
                     VALUES (?, ?, ?, ?, ?, ?)
                 ''', (book[0], book[1], book[2], book[3], book[4], book[5]))
                     conn.commit()
@@ -318,8 +320,84 @@ class BooksTable(Book):
 
     class Restore:
         """Function to handle database restoration"""
-        #to be implemented 
-        pass
+        
+        @staticmethod
+        def by_author(author):
+            conn = sqlite3.connect(DB_NAME)
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA foreign_keys = ON;")
+            
+            # Find and verify the books
+            cursor.execute("""SELECT * FROM removed_books WHERE author LIKE ?""", ('%' + author + '%',))
+            books = cursor.fetchall()
+            print(f'Total books by {author.lower()} found: {len(books)}')
+            
+            book_list = {}
+            for book in books:
+                book_list[book[0]]={
+                    "id": book[0],
+                    "author": book[1],
+                    "title": book[2],
+                    "isbn": book[3],
+                    "year": book[4]
+                }
+            
+            if not book_list:
+                print("No books found")
+            else:
+                print(f"Books that can be recovered: {len(book_list)}")
+                for book_id, book_data in book_list.items():
+                    print(f"""Title: {book_data['title']}, Author: {book_data['author']},   | | |   ID {book_id}""")
+                
+                if input("Do you want to restore? (yes/no): ").lower() == "yes":
+                    title = input("To restore, please input the title: ").strip().lower()  # Strip whitespace and convert to lowercase
+                    print(f"User input title for restoration: '{title}'")  # Debugging output
+                    
+                    # Check if the title exists in the book_list
+                    found = False
+                    for book_id, book_data in book_list.items():
+                        print(f"Comparing with stored title: '{book_data['title']}'")  # Debugging output
+                        if book_data['title'] == title:
+                            found = True
+                            # Restore the book to the books table
+                            cursor.execute('''
+                                INSERT INTO books (id, title, author, isbn, year)
+                                VALUES (?, ?, ?, ?, ?)''', 
+                                (book_data["id"],book_data['title'], book_data['author'], book_data['isbn'], book_data['year'])
+                            )
+
+                            #add to the recovered table
+                            cursor.execute('''
+                                INSERT INTO restored_books (book_id, author, title)
+                                VALUES (?, ?, ?)''', 
+                                (book_data["id"],book_data['title'], book_data['author'])
+                            )
+                            print(f"Restored: Title: {book_data['title']}, Author: {book_data['author']}, ID: {book_id}")
+                            
+                            # Optionally, remove the book from removed_books after restoration
+                            cursor.execute("DELETE FROM removed_books WHERE id = ?", (book_id,))
+                            break
+                    
+                    if not found:
+                        print("No matching title found for restoration.")
+            cursor.execute("PRAGMA foreign_keys;")
+            result = cursor.fetchone()
+            print("Foreign key support:", result[0])
+            conn.commit()  # Commit the changes to the database
+            conn.close()
+            
+                                
+        @staticmethod
+        def by_title_and_or_author(title,author):
+            pass
+        
+        @staticmethod
+        def by_id(id):
+            pass
+        
+        @staticmethod
+        def all():
+            pass
     
 def view_books_in_database():
     """Function to view all books in the database"""
@@ -403,6 +481,8 @@ def reset_books_table_id():
 def view_removed_books():
     """Function to view all removed books in the database"""
     conn = sqlite3.connect('databases/books.db')
+    conn.execute("PRAGMA foreign_keys = ON;")
+    
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM removed_books')
     removed_books = cursor.fetchall()
@@ -431,6 +511,7 @@ def view_removed_books():
 def restore_removed_book(id):
     """Function to restore a removed book back to the main books table"""
     conn = sqlite3.connect('databases/books.db')
+    conn.execute("PRAGMA foreign_keys = ON;")
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM removed_books WHERE id=?', (id,))
     book = cursor.fetchone()
@@ -484,8 +565,9 @@ if __name__ == "__main__":
     # Uncomment the following lines to test the functions
     #book = BooksTable.create_book_item()
     #BooksTable.add_to(book)
-    BooksTable.View.all_books()
-    BooksTable.View.by_author('Welsh')
-    BooksTable.View.by_author_and_title('Irvine Welsh','Porno')
-    #id=('6dbcfb2b-8098-532b-9c31-0d7d12589886')
-    #BooksTable.Remove.remove_by_id(id)
+    #BooksTable.View.all_books()
+    #BooksTable.View.by_author('Welsh')
+    #BooksTable.View.by_author_and_title('Irvine Welsh','Porno')
+    id=('6dbcfb2b-8098-532b-9c31-0d7d12589886')
+    BooksTable.Remove.remove_by_id(id)
+    BooksTable.Restore.by_author("Irvine Welsh")
