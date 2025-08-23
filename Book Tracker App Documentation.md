@@ -68,6 +68,7 @@ erDiagram
 		TEXT title
 		TEXT ISBN
         TEXT year
+        TIMESTAMP creation_date
 	}
 
 	genres {
