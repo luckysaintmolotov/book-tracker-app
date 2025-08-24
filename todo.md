@@ -9,6 +9,7 @@
 - [ ] make more concise comments and doctstrings
 - [ ] create and implement update book feature
 - [ ] refactor the remove function
+
 ## Completed
 - [x] implement the genre database and functions to add 
 - [x] add the restore function 
