@@ -1,7 +1,9 @@
 import sqlite3
-import uuid,re
+import uuid
+import pandas as pd
 from datetime import datetime
 from Book import Book
+from genres import Genres
 from Book_logs import update_log
 """Database management module for the Book Tracker App"""
 DB_NAME = 'databases/books.db'
@@ -49,6 +51,23 @@ def create_database_if_not_exists():
     )""")
     # Create the restored books table to keep track of restored books with foreign key to books
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS "genres"  (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+    "genre" TEXT)""")
+    # Create the basic_book_genres table to keep track of genres 
+    
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS "book_genres"(
+    "genre_id" INTEGER, 
+    "book_id" TEXT,
+    FOREIGN KEY ("genre_id") REFERENCES "genres"("id"),
+    FOREIGN KEY ("book_id") REFERENCES  "books"("id")  
+    ON DELETE CASCADE
+    )""")
+    # Create the book_genres table to keep track of books and their assigned genres
+    
+    
     conn.commit()
     conn.close()
 def create_database_backup():
@@ -78,10 +97,7 @@ class BooksTable(Book):
                 title = title.strip()
                 year = year 
                 isbn = isbn.strip()
-                
-                author = re.sub(r'[^a-zA-Z0-9 ]', '', author)
-                title = re.sub(r'[^a-zA-Z0-9 ]', '', title)
-                isbn = re.sub(r'[^0-9X]', '', isbn)  # ISBN can contain digits and 'X' for ISBN-10
+
 
                 # Generate a unique ID for the book
                 return str(uuid.uuid5(uuid.NAMESPACE_X500, f"{author}{title}{year}{isbn}"))
@@ -122,8 +138,6 @@ class BooksTable(Book):
             conn.close()
             print(f"Book '{book.title}' with ID: {book.id}added to the database successfully.")
             update_log(f"Book '{book.title}' added to the database successfully.")
-
-
     class View:
         """Class to handle all functions that pertain to viewing the database tables"""
         @staticmethod
@@ -214,7 +228,6 @@ class BooksTable(Book):
         def by_random():
             pass
         #further functions will be implemented
-
     class Remove:
         """Function to handle all database removal"""
 
@@ -237,7 +250,6 @@ class BooksTable(Book):
             # Commit the transaction
             conn.commit()
             print(f"Book with ID {book_id} successfully removed.")
-
     class Restore:
         """Function to handle database restoration"""
         
@@ -315,6 +327,72 @@ class BooksTable(Book):
         @staticmethod
         def all():
             pass
+
+class GenresTable():
+    
+    @staticmethod
+    def load_default_if_not():
+        conn = sqlite3.connect(DB_NAME)
+        c = conn.cursor()
+        c.execute(""" SELECT genre FROM genres """,)
+        result = c.fetchone()
+        if result is None:
+            for genre in Genres.current_list:
+                c.execute("""
+                INSERT INTO genres (genre)
+                VALUES (?)""",(genre,))
+            conn.commit()
+            conn.close()
+        else:
+            print("Predefined genres already loaded")
+    class Create:
+        @staticmethod
+        def create_new_genre_item():
+            def add_custom_genre_to(genre):
+                    conn = sqlite3.connect(DB_NAME)
+                    c = conn.cursor()
+                    c.execute("""
+                    SELECT * FROM genres 
+                    WHERE genre LIKE ?""",('%' + genre.lower() + '%',))
+                    list_of_existing_genres = c.fetchall()
+                    if not list_of_existing_genres:
+                        c.execute("""INSERT INTO genres (genre) VALUES (?)""",(genre.lower(),))
+                        conn.commit()
+                        return genre
+                        #print(f"Added new genre: {genre}")
+                    else:
+                        df = pd.DataFrame(list_of_existing_genres,columns=["ID","Genre"]).to_string(index=False)
+                        if len(df) >= 1:
+                            genre = list_of_existing_genres[1-1]
+                            return genre
+                        else:
+                            print(df)
+                            index = int(input("Genre exists, please enter the index: "))
+                            genre = list_of_existing_genres[index-1]
+                            return genre
+            
+            if input("Select from list? (Yes): ").lower() == "yes":
+                genre = Genres.select_from_list()
+                return genre
+            else:
+                genre = Genres.get_user_genre()
+                add_custom_genre_to(genre)
+                return genre
+        
+        @staticmethod
+        def add_to(book,genre):
+
+            conn = sqlite3.connect(DB_NAME)
+            c = conn.cursor()
+            c.execute("""
+            INSERT INTO book_genres (genre_id, book_id)
+            VALUES (?, ?)""",(genre,book.id))
+            conn.commit()
+            conn.close()
+        
+    class View:
+        pass
+    
     
 # This module provides functions to manage the book database, including creating the database, adding books, viewing books, removing books, and restoring removed books.
 # It uses SQLite for database management and includes logging functionality to track operations.
@@ -324,8 +402,11 @@ class BooksTable(Book):
 """Testing the book_database module"""
 if __name__ == "__main__":
     create_database_if_not_exists()
+    #GenresTable.insert_defaults()
     # Uncomment the following lines to test the functions
-    #book = BooksTable.create_book_item()
+    book = BooksTable.Create.create_book_item()
+    genre = GenresTable.Create.create_new_genre_item()
+    
     #BooksTable.add_to(book)
     #BooksTable.View.all_books()
     #BooksTable.View.by_author('Welsh')
@@ -333,3 +414,4 @@ if __name__ == "__main__":
     #id=('6dbcfb2b-8098-532b-9c31-0d7d12589886')
     #BooksTable.Remove.remove_by_id(id)
     #BooksTable.Restore.by_author("Irvine Welsh")
+    GenresTable.Create.add_to(book,genre)
