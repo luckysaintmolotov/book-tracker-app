@@ -1,5 +1,6 @@
 import Menu
 import book_database
+from genres import Genres
 from Book_logs import update_log
 
 def menu_loop():
@@ -7,7 +8,8 @@ def menu_loop():
     update_log("Book Tracker App started")    
     menu_instance = Menu.Menu()
     init_database = book_database.create_database_if_not_exists()
-    if init_database:
+    load_default_values = book_database.GenresTable.load_default_if_not()
+    if init_database and load_default_values:
         update_log("Database initialized successfully.")
     else:
         update_log("Database already exists or could not be initialized.")
