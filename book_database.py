@@ -60,68 +60,72 @@ def create_database_backup():
     conn.close()
     
 class BooksTable(Book):
-    """Class to handle all functions dedicated to the books table"""
+    """Class to contain all functions dedicated to the books table"""
 
-    @staticmethod
-    def create_book_item():
-        """Function to create a book item with basic data"""
-        def generate_book_id(author, title, year, isbn):
-            """Function that generates a UUID"""
-            if len(year) < 4  or year is None:
-                year = 1900
-                isbn = "000000000000000000000"
-            # Input sanitization
-            author = author.strip()
-            title = title.strip()
-            year = year 
-            isbn = isbn.strip()
-            
-            author = re.sub(r'[^a-zA-Z0-9 ]', '', author)
-            title = re.sub(r'[^a-zA-Z0-9 ]', '', title)
-            isbn = re.sub(r'[^0-9X]', '', isbn)  # ISBN can contain digits and 'X' for ISBN-10
+    
+    class Create:
+        """Class to handle the creation functions"""    
+        @staticmethod
+        def create_book_item():
+            """Function to create a book item with basic data"""
+            def generate_book_id(author, title, year, isbn):
+                """Function that generates a UUID"""
+                if len(year) < 4  or year is None:
+                    year = 1900
+                    isbn = "000000000000000000000"
+                # Input sanitization
+                author = author.strip()
+                title = title.strip()
+                year = year 
+                isbn = isbn.strip()
+                
+                author = re.sub(r'[^a-zA-Z0-9 ]', '', author)
+                title = re.sub(r'[^a-zA-Z0-9 ]', '', title)
+                isbn = re.sub(r'[^0-9X]', '', isbn)  # ISBN can contain digits and 'X' for ISBN-10
 
-            # Generate a unique ID for the book
-            return str(uuid.uuid5(uuid.NAMESPACE_X500, f"{author}{title}{year}{isbn}"))
-            
-        title = input("Enter book title: ").lower().strip()#!required
-        author = input("Enter book author: ").lower().strip()#!required
-        isbn = input("Enter book ISBN, if unknown leave blank: ")
-        year = input("Enter book publication year, if unknown leave blank: ")
-        id = generate_book_id(author,title,year,isbn)
-        if not title or not author:
-            print("Title and Author fields are required. Please try again.")
-            update_log("Book creation failed due to missing required fields.")
-            return None  
-    
-        print(f"Book created successfully. ID:{id} Title: {title}, Author: {author}, ISBN: {isbn}, Year: {year} on {datetime.now().strftime('%d-%m-%Y')}")
-        """Convert book data to class and return it"""
-        update_log("Book created successfully.")
-        return Book(id=id,title=title, author=author, isbn=isbn if isbn else None, year=year if year else None, )
-    
-    @staticmethod
-    def add_to(book):
-        """Function to add book item to the database"""
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM books WHERE title=? AND author=?', (book.title, book.author))
-        existing_book = cursor.fetchone()
-        # Check if the book already exists in the database
-        if existing_book is not None:
-            print(f"Book '{book.title}' by {book.author} already exists in the database.")
+                # Generate a unique ID for the book
+                return str(uuid.uuid5(uuid.NAMESPACE_X500, f"{author}{title}{year}{isbn}"))
+                
+            title = input("Enter book title: ").lower().strip()#!required
+            author = input("Enter book author: ").lower().strip()#!required
+            isbn = input("Enter book ISBN, if unknown leave blank: ")
+            year = input("Enter book publication year, if unknown leave blank: ")
+            id = generate_book_id(author,title,year,isbn)
+            if not title or not author:
+                print("Title and Author fields are required. Please try again.")
+                update_log("Book creation failed due to missing required fields.")
+                return None  
+        
+            print(f"Book created successfully. ID:{id} Title: {title}, Author: {author}, ISBN: {isbn}, Year: {year} on {datetime.now().strftime('%d-%m-%Y')}")
+            """Convert book data to class and return it"""
+            update_log("Book created successfully.")
+            return Book(id=id,title=title, author=author, isbn=isbn if isbn else None, year=year if year else None, )
+        
+        @staticmethod
+        def add_to(book):
+            """Function to add book item to the database"""
+            conn = sqlite3.connect(DB_NAME)
+            cursor = conn.cursor()
+            cursor.execute('SELECT * FROM books WHERE title=? AND author=?', (book.title, book.author))
+            existing_book = cursor.fetchone()
+            # Check if the book already exists in the database
+            if existing_book is not None:
+                print(f"Book '{book.title}' by {book.author} already exists in the database.")
+                conn.close()
+                return
+            # If the book does not exist, insert it into the database
+            cursor.execute('''
+                INSERT INTO books (id, title, author, isbn, year, creation_date)
+                VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ''', (book.id, book.title, book.author, book.isbn, book.year))
+            conn.commit()
             conn.close()
-            return
-        # If the book does not exist, insert it into the database
-        cursor.execute('''
-            INSERT INTO books (id, title, author, isbn, year, creation_date)
-            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        ''', (book.id, book.title, book.author, book.isbn, book.year))
-        conn.commit()
-        conn.close()
-        print(f"Book '{book.title}' with ID: {book.id}added to the database successfully.")
-        update_log(f"Book '{book.title}' added to the database successfully.")
+            print(f"Book '{book.title}' with ID: {book.id}added to the database successfully.")
+            update_log(f"Book '{book.title}' added to the database successfully.")
 
 
     class View:
+        """Class to handle all functions that pertain to viewing the database tables"""
         @staticmethod
         def all_books():  
             conn = sqlite3.connect(DB_NAME)
@@ -296,7 +300,6 @@ class BooksTable(Book):
                     if not found:
                         print("No matching title found for restoration.")
             result = cursor.fetchone()
-            print("Foreign key support:", result[0])
             conn.commit() 
             conn.close()
             
@@ -327,6 +330,6 @@ if __name__ == "__main__":
     #BooksTable.View.all_books()
     #BooksTable.View.by_author('Welsh')
     #BooksTable.View.by_author_and_title('Irvine Welsh','Porno')
-    id=('6dbcfb2b-8098-532b-9c31-0d7d12589886')
-    BooksTable.Remove.remove_by_id(id)
-    BooksTable.Restore.by_author("Irvine Welsh")
+    #id=('6dbcfb2b-8098-532b-9c31-0d7d12589886')
+    #BooksTable.Remove.remove_by_id(id)
+    #BooksTable.Restore.by_author("Irvine Welsh")

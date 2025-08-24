@@ -34,9 +34,9 @@ class Menu:
     def execute_choice(self, choice):
         """Execute the chosen menu option"""
         if choice == 1:
-            book = db.create_book_item()
+            book = db.Create.create_book_item()
             if book:
-                db.add_to(book)
+                db.Create.add_to(book)
         elif choice == 2:
             db.View.all_books()
         elif choice == 3:
