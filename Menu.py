@@ -1,4 +1,4 @@
-import book_database
+from book_database import BooksTable as db
 class Menu:
     """Class to manage the menu options for the Book Tracker App"""
     def __init__(self):
@@ -34,21 +34,22 @@ class Menu:
     def execute_choice(self, choice):
         """Execute the chosen menu option"""
         if choice == 1:
-            book = book_database.add_book_by_user_input()
+            book = db.create_book_item()
             if book:
-                book_database.add_book_to_database(book)
+                db.add_to(book)
         elif choice == 2:
-            book_database.view_books_in_database()
+            db.View.all_books()
         elif choice == 3:
-            book_database.view_books_in_database()
+            db.View.by_author(input("Author: ").lower())
         elif choice == 4:   
             print("Update functionality not implemented yet.")
         elif choice == 5:
-            book_database.view_books_in_database()
-            book_database.remove_book_from_database(book_id=int(input("Enter the book ID to delete: ")))
+            db.View.all_books()
+            db.Remove.remove_by_id(input("Input Unique ID of the book shown above: "))
         elif choice == 6:
-            book_database.view_removed_books()
-    
+            #to be implemented
+            #book_database.view_removed_books()
+            pass
         elif choice == 0:
             print("Exiting the Book Tracker App. Goodbye!")
             exit()
