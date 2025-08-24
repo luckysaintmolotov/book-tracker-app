@@ -3,6 +3,5 @@
 __pycache__
 *.db
 logs/
-todo.md
 *.svg
 databases/
